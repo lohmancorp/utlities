@@ -24,9 +24,6 @@ def generate_lipsum(length):
 def randomize_number(length):
     return ''.join([str(random.randint(0, 9)) for _ in range(length)])
 
-def is_email(s):
-    return re.match(r"[^@]+@[^@]+\.[^@]+", s)
-
 def replace_emails(s):
     return re.sub(r"[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+", "anonymizedemail@domain.com", s)
 
@@ -36,31 +33,23 @@ def preserve_numbers(s):
 def anonymize_urls(s):
     return re.sub(r'https?://[^\s]+', "https://host.foo.com", s)
 
-def anonymize_data(input_file, keys, echo, number_support):
+def transform_string(s):
+    s = replace_emails(s)
+    s = anonymize_urls(s)
+    s = preserve_numbers(s)
+    return s
+
+def anonymize_data(input_file, keys, echo):
     with open(input_file, 'r') as file:
         data = json.load(file)
 
     def anonymize_recursive(item):
         if isinstance(item, dict):
             for key, value in item.items():
-                if key in keys:
-                    if isinstance(value, int):
-                        item[key] = int(randomize_number(len(str(value))))
-                    elif isinstance(value, str):
-                        if is_email(value):
-                            value = replace_emails(value)
-                        value = anonymize_urls(value)
-                        if number_support:
-                            value = preserve_numbers(value)
-                        item[key] = value
-                    else:
-                        new_value = generate_lipsum(len(value))
-                        new_value = replace_emails(new_value)
-                        new_value = anonymize_urls(new_value)
-                        if number_support:
-                            new_value = preserve_numbers(new_value)
-                        item[key] = new_value
-                else:
+                if key in keys and isinstance(value, str):
+                    transformed = transform_string(value)
+                    item[key] = generate_lipsum(len(transformed)) if transformed == value else transformed
+                elif isinstance(item, (dict, list)):
                     anonymize_recursive(value)
         elif isinstance(item, list):
             for elem in item:
@@ -77,12 +66,11 @@ def anonymize_data(input_file, keys, echo, number_support):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Anonymize specific fields in a JSON file.")
     parser.add_argument("-i", "--input", required=True, help="Input JSON file path.")
-    parser.add_argument("-k", "--keys", required=True, help="Comma-separated keys to anonymize, spaces after commas are handled.")
-    parser.add_argument("-n", "--number-support", action="store_true", help="Preserve numbers in strings during anonymization.")
+    parser.add_argument("-k", "--keys", required=True, help="Comma-separated keys to anonymize.")
     parser.add_argument("-e", "--echo", action="store_true", help="Echo the updated result to the screen.")
     
     args = parser.parse_args()
     keys_to_anonymize = [key.strip() for key in args.keys.split(",")]
 
-    anonymize_data(args.input, keys_to_anonymize, args.echo, args.number_support)
+    anonymize_data(args.input, keys_to_anonymize, args.echo)
     print(f"Data in '{args.input}' has been anonymized.")
