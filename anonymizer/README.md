@@ -9,6 +9,6 @@ Usage
 
 ("-k", "--keys", required=True, help="Comma-separated keys to anonymize, spaces after commas are handled.")
 
-("-n", "--number-support", action="store_true", help="Preserve numbers in strings during anonymization.")
+("-c", "--concatenate", type=int, nargs='?', const=1000, help="Truncate strings to the specified length after anonymization. Default is 1000 characters.")
 
 ("-e", "--echo", action="store_true", help="Echo the updated result to the screen.")
